@@ -17,9 +17,13 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
     private var hostingView: NSView?
     private var lastCloseTime = Date.distantPast
 
+    // Fixed width to ensure rock-solid stability and zero jittering
+    private let barWidth: CGFloat = 225.0
+
     public init(telemetryService: SystemTelemetryService = SystemTelemetryService()) {
         self.telemetryService = telemetryService
-        self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // Set fixed length to prevent jittering/jumping in menu bar
+        self.statusItem = NSStatusBar.system.statusItem(withLength: barWidth)
         self.popover = NSPopover()
 
         super.init()
@@ -60,19 +64,6 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
             hosting.topAnchor.constraint(equalTo: button.topAnchor),
             hosting.bottomAnchor.constraint(equalTo: button.bottomAnchor)
         ])
-
-        updateStatusItemWidth()
-    }
-
-    private func updateStatusItemWidth() {
-        if let hosting = hostingView {
-            let width = hosting.fittingSize.width
-            if width > 40 {
-                statusItem.length = width + 8
-            } else {
-                statusItem.length = 210 // Fallback width
-            }
-        }
     }
 
     @objc private func statusItemClicked() {
@@ -116,7 +107,6 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
                 guard let self = self else { return }
                 let isPopoverActive = self.popover.isShown
                 self.telemetryService.updateSnapshot(includeProcesses: isPopoverActive)
-                self.updateStatusItemWidth()
             }
         }
     }
