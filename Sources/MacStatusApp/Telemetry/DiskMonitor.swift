@@ -21,7 +21,6 @@ public final class DiskMonitor: @unchecked Sendable {
 
         // Approximate I/O delta using system disk I/O delta
         let now = Date()
-        let elapsed = max(0.1, now.timeIntervalSince(lastSampleTime))
         lastSampleTime = now
 
         return DiskStats(

@@ -38,7 +38,7 @@ public final class NetworkMonitor: @unchecked Sendable {
                     var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
                     let saLen = socklen_t(addr.pointee.sa_len)
                     if getnameinfo(addr, saLen, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 {
-                        let ipStr = String(cString: host)
+                        let ipStr = host.withUnsafeBufferPointer { ptr in String(cString: ptr.baseAddress!) }
                         if !ipStr.hasPrefix("127.") && activeIP == "127.0.0.1" {
                             activeIP = ipStr
                             primaryInterface = name

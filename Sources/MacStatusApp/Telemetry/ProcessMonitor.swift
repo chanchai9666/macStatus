@@ -32,7 +32,7 @@ public final class ProcessMonitor: @unchecked Sendable {
 
             var nameBuffer = [CChar](repeating: 0, count: 256)
             proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
-            var procName = String(cString: nameBuffer)
+            var procName = nameBuffer.withUnsafeBufferPointer { ptr in String(cString: ptr.baseAddress!) }
             if procName.isEmpty {
                 procName = "PID \(pid)"
             }
