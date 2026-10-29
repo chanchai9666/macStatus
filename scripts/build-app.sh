@@ -25,6 +25,11 @@ chmod +x "${MACOS_DIR}/MacStatusApp"
 
 cp "Resources/Info.plist" "${CONTENTS_DIR}/Info.plist"
 
+if [ -f "Resources/AppIcon.icns" ]; then
+    echo "==> Copying AppIcon.icns..."
+    cp "Resources/AppIcon.icns" "${RESOURCES_DIR}/AppIcon.icns"
+fi
+
 echo "==> Ad-hoc signing ${APP_NAME}..."
 codesign -s - --force --deep "${APP_DIR}"
 

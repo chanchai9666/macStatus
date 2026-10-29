@@ -1,6 +1,12 @@
-# MacStatus 🍏⚡
+<p align="center">
+  <img src="Resources/AppIcon.png" width="140" height="140" alt="MacStatus Icon" />
+</p>
 
-> A native, ultra-lightweight, and clutter-free hardware status monitor for the macOS Menu Bar — meticulously crafted for Apple Silicon (M1/M2/M3/M4).
+<h1 align="center">MacStatus</h1>
+
+<p align="center">
+  <em>A native, ultra-lightweight, and clutter-free hardware status monitor for the macOS Menu Bar — meticulously crafted for Apple Silicon (M1/M2/M3/M4).</em>
+</p>
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-black?logo=apple&style=flat-square)](https://apple.com)
 [![Architecture](https://img.shields.io/badge/Architecture-Apple%20Silicon%20(arm64)-orange?style=flat-square)](https://apple.com)
@@ -112,9 +118,12 @@ swift test
 macStatus/
 ├── Package.swift                    # SwiftPM package configuration
 ├── Resources/
+│   ├── AppIcon.icns                 # macOS Multi-resolution Icon bundle (16x16 to 1024x1024)
+│   ├── AppIcon.png                  # High-res preview icon
 │   └── Info.plist                   # App bundle metadata (LSUIElement = true)
 ├── scripts/
-│   └── build-app.sh                 # App bundle packaging & codesign script
+│   ├── build-app.sh                 # App bundle packaging & codesign script
+│   └── generate-icon.swift          # Programmatic vector icon generator (AppKit/CoreGraphics)
 ├── Sources/
 │   └── MacStatusApp/
 │       ├── App/
