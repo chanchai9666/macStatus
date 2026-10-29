@@ -37,6 +37,7 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
         popover.behavior = .transient
         popover.animates = true
         popover.delegate = self
+        popover.contentSize = NSSize(width: 300, height: 460)
         popover.contentViewController = NSHostingController(
             rootView: PopoverDetailView(telemetryService: telemetryService, onClose: { [weak self] in
                 self?.closePopover()
@@ -84,6 +85,7 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
     public func showPopover() {
         guard let button = statusItem.button else { return }
         telemetryService.updateSnapshot(includeProcesses: true)
+        popover.contentSize = NSSize(width: 300, height: 460)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         startTimer(interval: 1.0, includeProcesses: true)
     }

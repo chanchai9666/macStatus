@@ -15,221 +15,194 @@ public struct PopoverDetailView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 10) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Apple Silicon")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white)
-                    Text("Hardware Telemetry")
-                        .font(.system(size: 10.5))
-                        .foregroundColor(Color(white: 0.6))
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 8) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Apple Silicon")
+                            .font(.system(size: 12.5, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("Hardware Telemetry")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color(white: 0.6))
+                    }
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(red: 48/255, green: 209/255, blue: 88/255))
+                            .frame(width: 6, height: 6)
+                        Text(String(format: "%.1f°C", snapshot.thermal.celsius))
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.12))
+                    .cornerRadius(5)
                 }
-                Spacer()
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(Color(red: 48/255, green: 209/255, blue: 88/255))
-                        .frame(width: 6, height: 6)
-                    Text(String(format: "%.1f°C", snapshot.thermal.celsius))
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(6)
-            }
-            .padding(.bottom, 2)
+                .padding(.horizontal, 2)
+                .padding(.bottom, 2)
 
-            // CPU Section
-            MetricCard(
-                title: "⚡ CPU PROCESSOR",
-                badge: String(format: "%.1f%%", snapshot.cpu.totalUsage),
-                progress: snapshot.cpu.totalUsage / 100.0,
-                progressColor: Color(red: 10/255, green: 132/255, blue: 255/255)
-            ) {
-                VStack(spacing: 4) {
-                    HStack {
-                        Text("E-Cores:")
-                            .font(.system(size: 10))
-                            .foregroundColor(Color(white: 0.6))
-                        Spacer()
-                        Text(String(format: "%.1f%%", snapshot.cpu.eCoreUsage))
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.white)
-                    }
-                    HStack {
-                        Text("P-Cores:")
-                            .font(.system(size: 10))
-                            .foregroundColor(Color(white: 0.6))
-                        Spacer()
-                        Text(String(format: "%.1f%%", snapshot.cpu.pCoreUsage))
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.white)
-                    }
-
-                    ProcessListView(
-                        title: "Top CPU Consumers:",
-                        processes: snapshot.topCPUProcesses,
-                        isMemory: false
-                    )
-                }
-                .padding(.top, 4)
-            }
-
-            // RAM Section
-            MetricCard(
-                title: "🧠 UNIFIED MEMORY",
-                badge: "\(Formatters.formatBytes(snapshot.ram.usedBytes)) / \(Formatters.formatBytes(snapshot.ram.totalBytes))",
-                progress: snapshot.ram.usagePercentage / 100.0,
-                progressColor: Color(red: 48/255, green: 209/255, blue: 88/255)
-            ) {
-                VStack(spacing: 4) {
-                    HStack {
-                        Text("App Memory:")
-                            .font(.system(size: 10))
-                            .foregroundColor(Color(white: 0.6))
-                        Spacer()
-                        Text(Formatters.formatBytes(snapshot.ram.appBytes))
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.white)
-                    }
-                    HStack {
-                        Text("Wired Memory:")
-                            .font(.system(size: 10))
-                            .foregroundColor(Color(white: 0.6))
-                        Spacer()
-                        Text(Formatters.formatBytes(snapshot.ram.wiredBytes))
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.white)
-                    }
-
-                    ProcessListView(
-                        title: "Top Memory Consumers:",
-                        processes: snapshot.topRAMProcesses,
-                        isMemory: true
-                    )
-                }
-                .padding(.top, 4)
-            }
-
-            // Storage Section
-            MetricCard(
-                title: "💾 MACINTOSH HD (SSD)",
-                badge: "\(Formatters.formatBytes(snapshot.disk.freeBytes)) Free",
-                progress: snapshot.disk.usedPercentage / 100.0,
-                progressColor: Color(red: 255/255, green: 159/255, blue: 10/255)
-            ) {
-                VStack(spacing: 3) {
-                    HStack {
-                        Text("Total: \(Formatters.formatBytes(snapshot.disk.totalBytes))")
-                            .font(.system(size: 10))
-                            .foregroundColor(Color(white: 0.6))
-                        Spacer()
-                        Text("Used: \(String(format: "%.1f%%", snapshot.disk.usedPercentage))")
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(.white)
-                    }
-                    if snapshot.disk.readBytesPerSec > 0 || snapshot.disk.writeBytesPerSec > 0 {
+                // CPU Section
+                MetricCard(
+                    title: "⚡ CPU PROCESSOR",
+                    badge: String(format: "%.1f%%", snapshot.cpu.totalUsage),
+                    progress: snapshot.cpu.totalUsage / 100.0,
+                    progressColor: Color(red: 10/255, green: 132/255, blue: 255/255)
+                ) {
+                    VStack(spacing: 3) {
                         HStack {
-                            Text("Disk I/O:")
+                            Text("E-Cores: \(String(format: "%.1f%%", snapshot.cpu.eCoreUsage))")
                                 .font(.system(size: 9.5))
-                                .foregroundColor(Color(white: 0.5))
+                                .foregroundColor(Color(white: 0.7))
                             Spacer()
-                            Text("R: \(Formatters.formatSpeed(snapshot.disk.readBytesPerSec)) | W: \(Formatters.formatSpeed(snapshot.disk.writeBytesPerSec))")
+                            Text("P-Cores: \(String(format: "%.1f%%", snapshot.cpu.pCoreUsage))")
+                                .font(.system(size: 9.5))
+                                .foregroundColor(Color(white: 0.7))
+                        }
+
+                        ProcessListView(
+                            title: "Top CPU Consumers:",
+                            processes: snapshot.topCPUProcesses,
+                            isMemory: false
+                        )
+                    }
+                    .padding(.top, 2)
+                }
+
+                // RAM Section
+                MetricCard(
+                    title: "🧠 UNIFIED MEMORY",
+                    badge: "\(Formatters.formatBytes(snapshot.ram.usedBytes)) / \(Formatters.formatBytes(snapshot.ram.totalBytes))",
+                    progress: snapshot.ram.usagePercentage / 100.0,
+                    progressColor: Color(red: 48/255, green: 209/255, blue: 88/255)
+                ) {
+                    VStack(spacing: 3) {
+                        HStack {
+                            Text("App: \(Formatters.formatBytes(snapshot.ram.appBytes))")
+                                .font(.system(size: 9.5))
+                                .foregroundColor(Color(white: 0.7))
+                            Spacer()
+                            Text("Wired: \(Formatters.formatBytes(snapshot.ram.wiredBytes))")
+                                .font(.system(size: 9.5))
+                                .foregroundColor(Color(white: 0.7))
+                        }
+
+                        ProcessListView(
+                            title: "Top Memory Consumers:",
+                            processes: snapshot.topRAMProcesses,
+                            isMemory: true
+                        )
+                    }
+                    .padding(.top, 2)
+                }
+
+                // Storage Section
+                MetricCard(
+                    title: "💾 MACINTOSH HD (SSD)",
+                    badge: "\(Formatters.formatBytes(snapshot.disk.freeBytes)) Free",
+                    progress: snapshot.disk.usedPercentage / 100.0,
+                    progressColor: Color(red: 255/255, green: 159/255, blue: 10/255)
+                ) {
+                    VStack(spacing: 2) {
+                        HStack {
+                            Text("Total: \(Formatters.formatBytes(snapshot.disk.totalBytes))")
+                                .font(.system(size: 9.5))
+                                .foregroundColor(Color(white: 0.6))
+                            Spacer()
+                            Text("Used: \(String(format: "%.1f%%", snapshot.disk.usedPercentage))")
                                 .font(.system(size: 9.5, design: .monospaced))
-                                .foregroundColor(Color(white: 0.8))
+                                .foregroundColor(.white)
                         }
                     }
+                    .padding(.top, 1)
+                }
+
+                // 2-Column: Network & Thermal
+                HStack(spacing: 6) {
+                    // Network Card
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("🌐 NETWORK")
+                            .font(.system(size: 9.5, weight: .bold))
+                            .foregroundColor(Color(white: 0.65))
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("▼ \(Formatters.formatSpeed(snapshot.network.downloadBytesPerSec))")
+                                .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                                .foregroundColor(Color(red: 100/255, green: 210/255, blue: 255/255))
+                            Text("▲ \(Formatters.formatSpeed(snapshot.network.uploadBytesPerSec))")
+                                .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                                .foregroundColor(Color(red: 48/255, green: 209/255, blue: 88/255))
+                        }
+
+                        Text("IP: \(snapshot.network.localIP)")
+                            .font(.system(size: 9))
+                            .foregroundColor(Color(white: 0.55))
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(white: 0.12).opacity(0.7))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            )
+                    )
+
+                    // Thermal Card
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("🌡 SOC THERMAL")
+                            .font(.system(size: 9.5, weight: .bold))
+                            .foregroundColor(Color(white: 0.65))
+
+                        Text(String(format: "%.1f°C", snapshot.thermal.celsius))
+                            .font(.system(size: 15, weight: .bold, design: .monospaced))
+                            .foregroundColor(tempColor(snapshot.thermal.celsius))
+
+                        Text("State: \(snapshot.thermal.thermalState)")
+                            .font(.system(size: 9))
+                            .foregroundColor(Color(white: 0.55))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(white: 0.12).opacity(0.7))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            )
+                    )
+                }
+
+                // Bottom Actions
+                HStack {
+                    Button(action: openActivityMonitor) {
+                        Text("Activity Monitor")
+                            .font(.system(size: 10.5))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.white.opacity(0.15))
+
+                    Spacer()
+
+                    Button(action: {
+                        NSApplication.shared.terminate(nil)
+                    }) {
+                        Text("Quit")
+                            .font(.system(size: 10.5))
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.top, 2)
             }
-
-            // 2-Column: Network & Thermal
-            HStack(spacing: 8) {
-                // Network Card
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("🌐 NETWORK")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(Color(white: 0.65))
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("▼ \(Formatters.formatSpeed(snapshot.network.downloadBytesPerSec))")
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
-                            .foregroundColor(Color(red: 100/255, green: 210/255, blue: 255/255))
-                        Text("▲ \(Formatters.formatSpeed(snapshot.network.uploadBytesPerSec))")
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
-                            .foregroundColor(Color(red: 48/255, green: 209/255, blue: 88/255))
-                    }
-
-                    Text("IP: \(snapshot.network.localIP)")
-                        .font(.system(size: 9.5))
-                        .foregroundColor(Color(white: 0.55))
-                        .padding(.top, 2)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(white: 0.12).opacity(0.7))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
-                )
-
-                // Thermal Card
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("🌡 SOC THERMAL")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(Color(white: 0.65))
-
-                    Text(String(format: "%.1f°C", snapshot.thermal.celsius))
-                        .font(.system(size: 17, weight: .bold, design: .monospaced))
-                        .foregroundColor(tempColor(snapshot.thermal.celsius))
-
-                    Text("State: \(snapshot.thermal.thermalState)")
-                        .font(.system(size: 9.5))
-                        .foregroundColor(Color(white: 0.55))
-                        .padding(.top, 2)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(white: 0.12).opacity(0.7))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
-                )
-            }
-
-            // Bottom Actions
-            HStack {
-                Button(action: openActivityMonitor) {
-                    Text("Activity Monitor")
-                        .font(.system(size: 11))
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Color.white.opacity(0.15))
-
-                Spacer()
-
-                Button(action: {
-                    NSApplication.shared.terminate(nil)
-                }) {
-                    Text("Quit")
-                        .font(.system(size: 11))
-                        .foregroundColor(.red)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.top, 4)
+            .padding(10)
         }
-        .padding(14)
-        .frame(width: 320)
+        .frame(width: 300, height: 460)
         .background(
             VisualEffectView(material: .popover, blendingMode: .behindWindow)
         )
