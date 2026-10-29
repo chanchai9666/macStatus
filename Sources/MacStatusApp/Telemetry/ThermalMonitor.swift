@@ -12,6 +12,8 @@ public final class ThermalMonitor: @unchecked Sendable {
     private var copyServicesFunc: IOHIDEventSystemClientCopyServicesFunc?
     private var copyEventFunc: IOHIDServiceClientCopyEventFunc?
     private var getFloatValueFunc: IOHIDEventGetFloatValueFunc?
+    private var cachedServices: [UnsafeMutableRawPointer] = []
+    private var lastServicesRefresh: TimeInterval = 0
 
     public init() {
         setupHIDClient()
@@ -39,8 +41,24 @@ public final class ThermalMonitor: @unchecked Sendable {
                     "PrimaryUsage": 0x5
                 ]
                 setMatchingFunc(client, matching as CFDictionary)
+                refreshServices()
             }
         }
+    }
+
+    private func refreshServices() {
+        guard let client = self.client, let copyServices = self.copyServicesFunc else { return }
+        cachedServices.removeAll(keepingCapacity: true)
+        if let services = copyServices(client) {
+            let count = CFArrayGetCount(services)
+            for i in 0..<count {
+                if let rawService = CFArrayGetValueAtIndex(services, i) {
+                    let service = UnsafeMutableRawPointer(mutating: rawService)
+                    cachedServices.append(service)
+                }
+            }
+        }
+        lastServicesRefresh = ProcessInfo.processInfo.systemUptime
     }
 
     public func sample() -> ThermalStats {
@@ -66,23 +84,19 @@ public final class ThermalMonitor: @unchecked Sendable {
             baseTemp = 42.0
         }
 
+        let nowUptime = ProcessInfo.processInfo.systemUptime
+        if cachedServices.isEmpty || (nowUptime - lastServicesRefresh > 60.0) {
+            refreshServices()
+        }
+
         var detectedTemps: [Double] = []
-        if let client = self.client,
-           let copyServices = self.copyServicesFunc,
-           let copyEvent = self.copyEventFunc,
-           let getFloat = self.getFloatValueFunc {
-            if let services = copyServices(client) {
-                let count = CFArrayGetCount(services)
-                for i in 0..<count {
-                    if let rawService = CFArrayGetValueAtIndex(services, i) {
-                        let service = unsafeBitCast(rawService, to: UnsafeMutableRawPointer.self)
-                        // 15 = kIOHIDEventTypeTemperature
-                        if let event = copyEvent(service, 15, 0, 0) {
-                            let temp = getFloat(event, (15 << 16))
-                            if temp > 15.0 && temp < 120.0 {
-                                detectedTemps.append(temp)
-                            }
-                        }
+        if let copyEvent = self.copyEventFunc, let getFloat = self.getFloatValueFunc {
+            for service in cachedServices {
+                // 15 = kIOHIDEventTypeTemperature
+                if let event = copyEvent(service, 15, 0, 0) {
+                    let temp = getFloat(event, (15 << 16))
+                    if temp > 15.0 && temp < 120.0 {
+                        detectedTemps.append(temp)
                     }
                 }
             }
@@ -90,7 +104,6 @@ public final class ThermalMonitor: @unchecked Sendable {
 
         let finalCelsius: Double
         if !detectedTemps.isEmpty {
-            // Use maximum or median sensor reading
             finalCelsius = detectedTemps.max() ?? baseTemp
         } else {
             finalCelsius = baseTemp

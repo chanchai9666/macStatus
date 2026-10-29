@@ -2,7 +2,19 @@ import Foundation
 import Darwin
 
 public final class MemoryMonitor: @unchecked Sendable {
-    public init() {}
+    private let totalRamBytes: Int64
+    private let pageSize: Int64
+
+    public init() {
+        var ram: Int64 = 0
+        var mib: [Int32] = [CTL_HW, HW_MEMSIZE]
+        var length = MemoryLayout<Int64>.size
+        if sysctl(&mib, 2, &ram, &length, nil, 0) != 0 || ram <= 0 {
+            ram = 16 * 1024 * 1024 * 1024 // Fallback 16GB
+        }
+        self.totalRamBytes = ram
+        self.pageSize = Int64(sysconf(_SC_PAGESIZE))
+    }
 
     public func sample() -> RAMStats {
         var size = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size)
@@ -16,15 +28,9 @@ public final class MemoryMonitor: @unchecked Sendable {
         }
 
         guard kerr == KERN_SUCCESS else {
-            return RAMStats()
+            return RAMStats(totalBytes: totalRamBytes)
         }
 
-        var totalRamBytes: Int64 = 0
-        var mib: [Int32] = [CTL_HW, HW_MEMSIZE]
-        var length = MemoryLayout<Int64>.size
-        sysctl(&mib, 2, &totalRamBytes, &length, nil, 0)
-
-        let pageSize = Int64(sysconf(_SC_PAGESIZE))
         let appPages = max(0, Int64(vmStats.internal_page_count) - Int64(vmStats.purgeable_count))
         let appBytes = appPages * pageSize
         let wiredBytes = Int64(vmStats.wire_count) * pageSize

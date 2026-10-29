@@ -16,13 +16,17 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
     private var timer: Timer?
     private var hostingView: NSView?
     private var lastCloseTime = Date.distantPast
+    private var isScreenSleeping = false
 
     // Fixed width to ensure rock-solid stability and zero jittering
     private let barWidth: CGFloat = 225.0
 
+    // Efficient interval: 2.5s idle (saves battery/CPU), 1.0s when popover is open
+    private let idleInterval: TimeInterval = 2.5
+    private let activeInterval: TimeInterval = 1.0
+
     public init(telemetryService: SystemTelemetryService = SystemTelemetryService()) {
         self.telemetryService = telemetryService
-        // Set fixed length to prevent jittering/jumping in menu bar
         self.statusItem = NSStatusBar.system.statusItem(withLength: barWidth)
         self.popover = NSPopover()
 
@@ -30,7 +34,8 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
 
         setupPopover()
         setupStatusItem()
-        startTimer(interval: 2.0, includeProcesses: false)
+        setupSleepWakeObservers()
+        startTimer(interval: idleInterval, includeProcesses: false)
     }
 
     private func setupPopover() {
@@ -67,6 +72,45 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
         ])
     }
 
+    private func setupSleepWakeObservers() {
+        let center = NSWorkspace.shared.notificationCenter
+
+        center.addObserver(forName: NSWorkspace.screensDidSleepNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.pauseMonitoring()
+            }
+        }
+
+        center.addObserver(forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.resumeMonitoring()
+            }
+        }
+
+        center.addObserver(forName: NSWorkspace.sessionDidResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.pauseMonitoring()
+            }
+        }
+
+        center.addObserver(forName: NSWorkspace.sessionDidBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.resumeMonitoring()
+            }
+        }
+    }
+
+    private func pauseMonitoring() {
+        isScreenSleeping = true
+        timer?.invalidate()
+        timer = nil
+    }
+
+    private func resumeMonitoring() {
+        isScreenSleeping = false
+        startTimer(interval: idleInterval, includeProcesses: false)
+    }
+
     @objc private func statusItemClicked() {
         if Date().timeIntervalSince(lastCloseTime) < 0.25 {
             return
@@ -87,26 +131,27 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
         telemetryService.updateSnapshot(includeProcesses: true)
         popover.contentSize = NSSize(width: 300, height: 460)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        startTimer(interval: 1.0, includeProcesses: true)
+        startTimer(interval: activeInterval, includeProcesses: true)
     }
 
     public func closePopover() {
         popover.performClose(nil)
         lastCloseTime = Date()
-        startTimer(interval: 2.0, includeProcesses: false)
+        startTimer(interval: idleInterval, includeProcesses: false)
     }
 
     // MARK: - NSPopoverDelegate
     public func popoverDidClose(_ notification: Notification) {
         lastCloseTime = Date()
-        startTimer(interval: 2.0, includeProcesses: false)
+        startTimer(interval: idleInterval, includeProcesses: false)
     }
 
     private func startTimer(interval: TimeInterval, includeProcesses: Bool) {
+        guard !isScreenSleeping else { return }
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self = self, !self.isScreenSleeping else { return }
                 let isPopoverActive = self.popover.isShown
                 self.telemetryService.updateSnapshot(includeProcesses: isPopoverActive)
             }
