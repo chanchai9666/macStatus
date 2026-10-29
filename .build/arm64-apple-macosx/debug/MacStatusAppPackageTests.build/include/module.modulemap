@@ -1,0 +1,3 @@
+module MacStatusAppPackageTests {
+    header "/Users/chanchai/workshop/macStatus/.build/arm64-apple-macosx/debug/MacStatusAppPackageTests.build/include/MacStatusAppPackageTests-Swift.h"
+}
