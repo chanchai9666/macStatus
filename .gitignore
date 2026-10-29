@@ -1,2 +1,40 @@
-.superpowers/
+# Xcode & Swift Package Manager
+.build/
 build/
+DerivedData/
+.swiftpm/
+Packages/
+Package.pins
+
+# Application Bundles & Binaries
+*.app
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+Network Trash Folder
+Temporary Items
+
+# User-specific & IDE files
+xcuserdata/
+*.xcuserdatad/
+*.xcscmblueprint
+*.xccheckout
+.vscode/
+.idea/
+*.swp
+*~
+
+# AI & Agent metadata
+.superpowers/
