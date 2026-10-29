@@ -25,20 +25,31 @@ public final class MemoryMonitor: @unchecked Sendable {
         sysctl(&mib, 2, &totalRamBytes, &length, nil, 0)
 
         let pageSize = Int64(sysconf(_SC_PAGESIZE))
-        let active = Int64(vmStats.active_count) * pageSize
-        let wired = Int64(vmStats.wire_count) * pageSize
-        let compressed = Int64(vmStats.compressor_page_count) * pageSize
-        let speculative = Int64(vmStats.speculative_count) * pageSize
-        let app = active + speculative
-        let used = wired + app + compressed
+        let appPages = max(0, Int64(vmStats.internal_page_count) - Int64(vmStats.purgeable_count))
+        let appBytes = appPages * pageSize
+        let wiredBytes = Int64(vmStats.wire_count) * pageSize
+        let compressedBytes = Int64(vmStats.compressor_page_count) * pageSize
+        let usedBytes = appBytes + wiredBytes + compressedBytes
+
+        var pressureLevel: Int32 = 1
+        var pressureSize = MemoryLayout<Int32>.size
+        var pressureStr = "Normal"
+        if sysctlbyname("kern.memorystatus_vm_pressure_level", &pressureLevel, &pressureSize, nil, 0) == 0 {
+            switch pressureLevel {
+            case 1: pressureStr = "Normal"
+            case 2: pressureStr = "Warning"
+            case 4: pressureStr = "Critical"
+            default: pressureStr = "Normal"
+            }
+        }
 
         return RAMStats(
             totalBytes: totalRamBytes,
-            usedBytes: min(totalRamBytes, used),
-            appBytes: app,
-            wiredBytes: wired,
-            compressedBytes: compressed,
-            pressureState: "Normal"
+            usedBytes: min(totalRamBytes, usedBytes),
+            appBytes: appBytes,
+            wiredBytes: wiredBytes,
+            compressedBytes: compressedBytes,
+            pressureState: pressureStr
         )
     }
 }

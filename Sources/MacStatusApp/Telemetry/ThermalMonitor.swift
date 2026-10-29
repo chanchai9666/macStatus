@@ -4,11 +4,13 @@ import IOKit
 public final class ThermalMonitor: @unchecked Sendable {
     private typealias IOHIDEventSystemClientCreateFunc = @convention(c) (CFAllocator?) -> UnsafeMutableRawPointer?
     private typealias IOHIDEventSystemClientSetMatchingFunc = @convention(c) (UnsafeMutableRawPointer, CFDictionary) -> Void
-    private typealias IOHIDEventSystemClientCopyEventFunc = @convention(c) (UnsafeMutableRawPointer, UInt32, UInt32, UInt64) -> CFTypeRef?
+    private typealias IOHIDEventSystemClientCopyServicesFunc = @convention(c) (UnsafeMutableRawPointer) -> CFArray?
+    private typealias IOHIDServiceClientCopyEventFunc = @convention(c) (UnsafeMutableRawPointer, UInt32, UInt32, UInt64) -> CFTypeRef?
     private typealias IOHIDEventGetFloatValueFunc = @convention(c) (CFTypeRef, UInt32) -> Double
 
     private var client: UnsafeMutableRawPointer?
-    private var copyEventFunc: IOHIDEventSystemClientCopyEventFunc?
+    private var copyServicesFunc: IOHIDEventSystemClientCopyServicesFunc?
+    private var copyEventFunc: IOHIDServiceClientCopyEventFunc?
     private var getFloatValueFunc: IOHIDEventGetFloatValueFunc?
 
     public init() {
@@ -21,11 +23,13 @@ public final class ThermalMonitor: @unchecked Sendable {
 
         if let createSym = dlsym(handle, "IOHIDEventSystemClientCreate"),
            let setMatchingSym = dlsym(handle, "IOHIDEventSystemClientSetMatching"),
-           let copyEventSym = dlsym(handle, "IOHIDEventSystemClientCopyEvent"),
+           let copyServicesSym = dlsym(handle, "IOHIDEventSystemClientCopyServices"),
+           let copyEventSym = dlsym(handle, "IOHIDServiceClientCopyEvent"),
            let getFloatSym = dlsym(handle, "IOHIDEventGetFloatValue") {
             let createFunc = unsafeBitCast(createSym, to: IOHIDEventSystemClientCreateFunc.self)
             let setMatchingFunc = unsafeBitCast(setMatchingSym, to: IOHIDEventSystemClientSetMatchingFunc.self)
-            self.copyEventFunc = unsafeBitCast(copyEventSym, to: IOHIDEventSystemClientCopyEventFunc.self)
+            self.copyServicesFunc = unsafeBitCast(copyServicesSym, to: IOHIDEventSystemClientCopyServicesFunc.self)
+            self.copyEventFunc = unsafeBitCast(copyEventSym, to: IOHIDServiceClientCopyEventFunc.self)
             self.getFloatValueFunc = unsafeBitCast(getFloatSym, to: IOHIDEventGetFloatValueFunc.self)
 
             if let client = createFunc(kCFAllocatorDefault) {
@@ -62,21 +66,36 @@ public final class ThermalMonitor: @unchecked Sendable {
             baseTemp = 42.0
         }
 
-        var detectedTemp: Double?
+        var detectedTemps: [Double] = []
         if let client = self.client,
+           let copyServices = self.copyServicesFunc,
            let copyEvent = self.copyEventFunc,
            let getFloat = self.getFloatValueFunc {
-            // 15 = kIOHIDEventTypeTemperature
-            if let event = copyEvent(client, 15, 0, 0) {
-                // (15 << 16) | 1 = IOHIDEventFieldBase(15)
-                let temp = getFloat(event, (15 << 16))
-                if temp > 10.0 && temp < 120.0 {
-                    detectedTemp = temp
+            if let services = copyServices(client) {
+                let count = CFArrayGetCount(services)
+                for i in 0..<count {
+                    if let rawService = CFArrayGetValueAtIndex(services, i) {
+                        let service = unsafeBitCast(rawService, to: UnsafeMutableRawPointer.self)
+                        // 15 = kIOHIDEventTypeTemperature
+                        if let event = copyEvent(service, 15, 0, 0) {
+                            let temp = getFloat(event, (15 << 16))
+                            if temp > 15.0 && temp < 120.0 {
+                                detectedTemps.append(temp)
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        let finalCelsius = detectedTemp ?? baseTemp
+        let finalCelsius: Double
+        if !detectedTemps.isEmpty {
+            // Use maximum or median sensor reading
+            finalCelsius = detectedTemps.max() ?? baseTemp
+        } else {
+            finalCelsius = baseTemp
+        }
+
         return ThermalStats(
             celsius: finalCelsius,
             thermalState: stateString,

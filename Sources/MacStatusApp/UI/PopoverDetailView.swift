@@ -121,14 +121,27 @@ public struct PopoverDetailView: View {
                 progress: snapshot.disk.usedPercentage / 100.0,
                 progressColor: Color(red: 255/255, green: 159/255, blue: 10/255)
             ) {
-                HStack {
-                    Text("Total: \(Formatters.formatBytes(snapshot.disk.totalBytes))")
-                        .font(.system(size: 10))
-                        .foregroundColor(Color(white: 0.6))
-                    Spacer()
-                    Text("Used: \(String(format: "%.1f%%", snapshot.disk.usedPercentage))")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(.white)
+                VStack(spacing: 3) {
+                    HStack {
+                        Text("Total: \(Formatters.formatBytes(snapshot.disk.totalBytes))")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color(white: 0.6))
+                        Spacer()
+                        Text("Used: \(String(format: "%.1f%%", snapshot.disk.usedPercentage))")
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(.white)
+                    }
+                    if snapshot.disk.readBytesPerSec > 0 || snapshot.disk.writeBytesPerSec > 0 {
+                        HStack {
+                            Text("Disk I/O:")
+                                .font(.system(size: 9.5))
+                                .foregroundColor(Color(white: 0.5))
+                            Spacer()
+                            Text("R: \(Formatters.formatSpeed(snapshot.disk.readBytesPerSec)) | W: \(Formatters.formatSpeed(snapshot.disk.writeBytesPerSec))")
+                                .font(.system(size: 9.5, design: .monospaced))
+                                .foregroundColor(Color(white: 0.8))
+                        }
+                    }
                 }
                 .padding(.top, 2)
             }

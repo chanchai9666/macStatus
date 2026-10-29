@@ -2,7 +2,7 @@ import Foundation
 import Darwin
 
 public final class NetworkMonitor: @unchecked Sendable {
-    private var lastSampleTime = Date()
+    private var lastSampleUptime: TimeInterval = ProcessInfo.processInfo.systemUptime
     private var lastInBytes: UInt64 = 0
     private var lastOutBytes: UInt64 = 0
     private var isFirstSample = true
@@ -38,7 +38,9 @@ public final class NetworkMonitor: @unchecked Sendable {
                     var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
                     let saLen = socklen_t(addr.pointee.sa_len)
                     if getnameinfo(addr, saLen, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 {
-                        let ipStr = host.withUnsafeBufferPointer { ptr in String(cString: ptr.baseAddress!) }
+                        let ipStr = host.withUnsafeBufferPointer { ptr in
+                            String(cString: ptr.baseAddress!)
+                        }
                         if !ipStr.hasPrefix("127.") && activeIP == "127.0.0.1" {
                             activeIP = ipStr
                             primaryInterface = name
@@ -49,14 +51,14 @@ public final class NetworkMonitor: @unchecked Sendable {
             cursor = current.pointee.ifa_next
         }
 
-        let now = Date()
-        let elapsed = max(0.2, now.timeIntervalSince(lastSampleTime))
-        lastSampleTime = now
+        let nowUptime = ProcessInfo.processInfo.systemUptime
+        let elapsed = nowUptime - lastSampleUptime
+        lastSampleUptime = nowUptime
 
-        if isFirstSample {
+        if isFirstSample || elapsed > 4.0 || elapsed <= 0.05 {
             isFirstSample = false
             lastInBytes = totalInBytes
-            lastOutOutBytes(totalOutBytes)
+            lastOutBytes = totalOutBytes
             return NetworkStats(
                 downloadBytesPerSec: 0.0,
                 uploadBytesPerSec: 0.0,
@@ -74,14 +76,10 @@ public final class NetworkMonitor: @unchecked Sendable {
         let upRate = Double(outDelta) / elapsed
 
         return NetworkStats(
-            downloadBytesPerSec: downRate,
-            uploadBytesPerSec: upRate,
+            downloadBytesPerSec: max(0.0, downRate),
+            uploadBytesPerSec: max(0.0, upRate),
             localIP: activeIP,
             interfaceName: primaryInterface
         )
-    }
-
-    private func lastOutOutBytes(_ val: UInt64) {
-        lastOutBytes = val
     }
 }
