@@ -17,7 +17,7 @@ Users of MacBook Apple Silicon (M-Series) lack a native, lightweight, and clutte
 ## 2. Goals, Non-Goals, and Anti-Goals
 
 ### Goals
-- **Menu Bar Display:** Render a compact, native status item containing Circular Activity Rings for CPU, RAM, and SSD, alongside real-time Network Throughput (`⇅ 1.2M`) and SoC Temperature (`42°C`).
+- **Menu Bar Display:** Render a compact, native status item containing a Two-Row Stacked Dashboard (CPU %, RAM %, SSD %, SoC Temperature, and live Network Up/Down throughput with subtle column dividers), alongside an optional modular Circular Activity Rings view.
 - **Interactive Detailed Popover:** Clicking the status item smoothly opens an Apple-style popover displaying deep telemetry:
   - **CPU:** Total %, E-Cores vs P-Cores breakdown, and Top 3 CPU-consuming processes.
   - **Unified Memory (RAM):** Used / Total GB, App Memory, Wired, Compressed, Memory Pressure, and Top 3 Memory-consuming processes.
@@ -51,13 +51,14 @@ Users of MacBook Apple Silicon (M-Series) lack a native, lightweight, and clutte
 ## 4. User-Decided Specifications
 
 - **Menu Bar Presentation Style:**
-  - **Option 2 (Circular Activity Rings):**
-    - 3 miniature circular ring gauges:
-      - **CPU Gauge:** Blue accent (`#0A84FF`), showing total CPU load.
-      - **RAM Gauge:** Green accent (`#30D158`), showing Unified Memory utilization.
-      - **SSD Gauge:** Orange accent (`#FF9F0A`), showing storage fullness percentage.
-    - **Network Badge:** Text indicating current aggregated traffic (e.g., `⇅ 1.2M`).
-    - **Temperature Badge:** Text showing SoC package temperature (e.g., `42°C`).
+  - **Primary: Two-Row Stacked Dashboard (iStat Menus Pro Style):**
+    - 2 rows within 22pt menu bar height, organized into 3 columns with subtle vertical dividers:
+      - **Column 1:** CPU % (Blue `#0A84FF`) and RAM % (Green `#30D158`).
+      - **Column 2:** SSD % (Orange `#FF9F0A`) and SoC Temperature (Color-graded).
+      - **Column 3:** Network Upload rate (▲) and Download rate (▼).
+    - Fixed width container (`190.0pt`) supporting multi-digit numbers (up to 100% and multi-megabyte throughput) with zero text truncation or bouncing.
+  - **Modular Component: Circular Activity Rings (`CircularRingsView`):**
+    - 3 miniature circular ring gauges for CPU, RAM, and SSD alongside network badge (`⇅ 1.2M`) and temperature badge.
 - **Popover Window Behavior:**
   - Smooth animation on click, anchoring under the menu bar item.
   - Dark translucent glass styling (`NSVisualEffectView` with `.hudWindow` / `.popover` material).
@@ -78,24 +79,24 @@ Users of MacBook Apple Silicon (M-Series) lack a native, lightweight, and clutte
 - Calculate:
   - `active_count`, `inactive_count`, `wire_count`, `compressor_page_count`.
   - App memory = `(internal - purgeable) * pageSize`.
-  - Memory Pressure = monitor via dispatch source `DISPATCH_SOURCE_TYPE_VM` or `vm_statistics64.pageins/pageouts`.
+  - Memory Pressure = monitor via dispatch source `DISPATCH_SOURCE_TYPE_VM` or `vm_statistics64.pageins/pageouts` / `kern.memorystatus_vm_pressure_level`.
 - **Top Processes:** Query `proc_pidinfo` (`PROC_PIDTASKINFO`) for resident size (RSS).
 
 ### 5.3 Storage (SSD) Metrics
 - **Volume Usage:** Call `statfs` on `/` (Macintosh HD) to obtain `f_bavail`, `f_bfree`, and `f_blocks`.
-- **Disk I/O Throughput:** Use IOKit storage statistics (`IOBlockStorageDriver`) or `getfsstat` delta to compute Read MB/s and Write MB/s.
+- **Disk I/O Throughput:** Query `IOBlockStorageDriver` in IORegistry to extract `"Statistics"` (`Bytes (Read)`, `Bytes (Write)`) and compute sample deltas to derive live Read and Write bytes/sec.
 
 ### 5.4 Network Metrics
 - **Interface Throughput:** Call `getifaddrs` to examine `ifa_data` (`struct if_data`) for network interfaces (`en0`, `en1`, etc.). Compute byte delta between timer ticks to derive current Upload (bytes sent/sec) and Download (bytes received/sec).
-- **IP & Wi-Fi:** Extract active IPv4 address from `getifaddrs`.
+- **IP & Wi-Fi:** Extract active IPv4 address and active interface name from `getifaddrs`.
 
 ### 5.5 SoC Temperature & Thermal State
-- **Thermal State:** Read `ProcessInfo.processInfo.thermalState` (`nominal`, `fair`, `serious`, `critical`).
-- **Temperature Sensing:** Access Apple Silicon thermal sensors via user-space `IOHIDEventSystemClient` (matching `PrimaryUsagePage = 0xff00` and `PrimaryUsage = 0x5` for thermal sensors) to get accurate Celsius temperatures.
+- **Thermal State:** Read `ProcessInfo.processInfo.thermalState` mapped to strongly-typed `ThermalPressureState` (`nominal`, `fair`, `serious`, `critical`).
+- **Temperature Sensing:** Access Apple Silicon thermal sensors via user-space `IOHIDEventSystemClient` (matching `PrimaryUsagePage = 0xff00` and `PrimaryUsage = 0x5`) maintaining a long-lived library handle to ensure persistent hardware event sampling.
 
 ### 5.6 Application Lifecycle & UI
 - `LSUIElement = YES` so the app runs purely as a Menu Bar accessory without a Dock icon.
-- `NSStatusItem` holds an `NSView` / `NSHostingView` rendering the SwiftUI `CircularRingsView`.
+- `NSStatusItem` holds an `NSView` / `NSHostingView` rendering the SwiftUI `DynamicMenuBarView` (displaying `TwoRowStackedView` at 190.0pt width).
 - Update frequency:
   - Menu Bar items: Every 2.0 seconds.
   - Popover (when open): Every 1.0 second.

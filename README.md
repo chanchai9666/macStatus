@@ -17,12 +17,13 @@
 
 ## 🌟 Overview
 
-**MacStatus** is a native macOS menu bar utility designed to replace bulky, power-hungry status monitor apps. Built purely with **Swift 6, SwiftUI, and AppKit**, it provides vital system health metrics at a glance using compact circular activity rings, with zero clutter and minimal resource overhead.
+**MacStatus** is a native macOS menu bar utility designed to replace bulky, power-hungry status monitor apps. Built purely with **Swift 6, SwiftUI, and AppKit**, it provides vital system health metrics at a glance using a sleek, two-row information-dense dashboard (with optional circular activity rings), with zero clutter and minimal resource overhead.
 
 ```text
-┌────────────────────────────────────────────────────────┐
-│  (◎ 14%  ◎ 58%  ◎ 68%   ⇅ 1.2M   42.0°C)               │  <- Menu Bar
-└────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────┐
+│ CPU 10% │ SSD 77% │ ▲ 1.2M            │  <- Menu Bar (Two-Row Dashboard)
+│ RAM 70% │ TMP 52° │ ▼ 4.5M            │
+└───────────────────────────────────────┘
 ```
 
 When clicked, it expands into an elegant Apple-style popover displaying detailed real-time telemetry, core breakdown, top consuming processes, and thermal conditions.
@@ -31,11 +32,14 @@ When clicked, it expands into an elegant Apple-style popover displaying detailed
 
 ## ✨ Features
 
-### 1. Minimalist Menu Bar Glance
-* **Activity Rings:** Color-coded circular gauges for **CPU** (Blue), **RAM** (Green), and **SSD** (Orange).
-* **Live Network Badge:** Instant total throughput indicator (e.g. `⇅ 1.2M`).
-* **SoC Temperature:** Real-time Apple Silicon chip temperature (e.g. `42.0°C`).
-* **Zero Jitter:** Fixed-width container layout prevents status bar bouncing and notch clipping on modern MacBooks.
+### 1. Minimalist Two-Row Menu Bar Dashboard
+* **Pro Layout:** Clean 3-column, 2-row layout engineered specifically for the 22pt macOS Menu Bar.
+  * **Column 1:** **CPU** % (Blue) and **RAM** % (Green).
+  * **Column 2:** **SSD** % (Orange) and **TMP** SoC Temperature (Color-graded).
+  * **Column 3:** Live Network Upload (▲) and Download (▼) transfer rates.
+* **Refined Typography & Spacing:** Monospaced numbers with subtle column dividers, supporting multi-digit numbers (up to 100% and multi-megabyte throughput) without label clipping or jitter.
+* **Alternative Circular Activity Rings:** Includes modular `CircularRingsView` for users preferring miniature Apple Watch style circular gauges.
+* **Zero Jitter:** Fixed-width container layout (190pt) prevents status bar bouncing and notch clipping on modern MacBooks.
 
 ### 2. Deep Telemetry Popover
 * **⚡ CPU Processor:**
@@ -44,22 +48,25 @@ When clicked, it expands into an elegant Apple-style popover displaying detailed
   * Live Top 3 CPU-consuming processes.
 * **🧠 Unified Memory (RAM):**
   * Used vs Total capacity breakdown (e.g., `18.6 GB / 32.0 GB`).
-  * App Memory & Wired Memory tracking.
+  * App Memory, Wired Memory, and Compressed Memory tracking.
+  * Live Memory Pressure state (`Normal`, `Warning`, `Critical`).
   * Live Top 3 Memory-consuming processes.
 * **💾 Storage (Macintosh HD):**
   * Free storage space and percentage used.
+  * Live Read & Write I/O throughput (via IOKit `IOBlockStorageDriver`).
 * **🌐 Network:**
-  * Separate real-time Download (▼) and Upload (▲) transfer rates.
-  * Active Local IP address.
+  * Real-time Download (▼) and Upload (▲) transfer rates.
+  * Active Network Interface (e.g. `en0`) and Local IP address.
 * **🌡 Apple Silicon SoC Thermal:**
   * Hardware sensor readout in Celsius via `IOHIDEventSystem`.
-  * Thermal pressure states (`Nominal`, `Fair`, `Serious`).
+  * Thermal pressure states (`Nominal`, `Fair`, `Serious`, `Critical`).
+  * Fan status readout (`RPM` or `Fanless`).
 * **⚡ Quick Actions:**
   * One-click shortcut to launch macOS **Activity Monitor**.
-  * Quick Quit button.
+  * Configure shortcut and Quick Quit button.
 
 ### 3. Ultra-Low Resource & Energy Efficiency
-* **Adaptive Polling:** Automatically throttles update interval to `2.5s` when running in the menu bar, switching to `1.0s` only while the popover is actively open.
+* **Adaptive Polling:** Automatically throttles update interval to `2.0s` when running in the menu bar, switching to `1.0s` only while the popover is actively open.
 * **Display Sleep Aware:** Pauses all background telemetry sampling when the display sleeps to preserve battery life.
 * **Resource Profile:** Idles at `< 0.5%` CPU usage and `< 30 MB` RAM footprint.
 * **100% Native:** No Electron, no webview, direct Mach kernel APIs (`mach_host`, `vm_statistics64`), `libproc`, and IOKit.
@@ -130,6 +137,7 @@ swift test
 ```text
 macStatus/
 ├── Package.swift                    # SwiftPM package configuration
+├── Makefile                         # Unified developer command runner (build, test, app, install)
 ├── Resources/
 │   ├── AppIcon.icns                 # macOS Multi-resolution Icon bundle (16x16 to 1024x1024)
 │   ├── AppIcon.png                  # High-res preview icon
@@ -143,17 +151,18 @@ macStatus/
 │       │   └── StatusBarController.swift  # Status item, popover delegate & sleep handling
 │       ├── Telemetry/
 │       │   ├── Models.swift               # Data models for CPU, RAM, Disk, Net, Thermal
-│       │   ├── Formatters.swift           # Byte and throughput speed formatters
+│       │   ├── Formatters.swift           # Byte, speed formatters & shared color logic
 │       │   ├── CPUMonitor.swift           # Mach host processor load & core breakdown
 │       │   ├── MemoryMonitor.swift        # vm_statistics64 Unified Memory telemetry
-│       │   ├── DiskMonitor.swift          # statfs volume metrics
+│       │   ├── DiskMonitor.swift          # statfs volume metrics & IOKit disk I/O throughput
 │       │   ├── NetworkMonitor.swift       # getifaddrs network throughput
 │       │   ├── ThermalMonitor.swift       # IOHIDEventSystem SoC thermal sensors
 │       │   ├── ProcessMonitor.swift       # libproc process list & resource tracking
 │       │   └── SystemTelemetryService.swift # Observable central telemetry coordinator
 │       ├── UI/
+│       │   ├── TwoRowStackedView.swift    # 2-row compact status bar dashboard (default)
+│       │   ├── CircularRingsView.swift    # Modular circular rings status bar gauge view
 │       │   ├── RingGauge.swift            # SwiftUI circular ring gauge component
-│       │   ├── CircularRingsView.swift    # Compact status bar gauge view
 │       │   ├── PopoverDetailView.swift    # Expandable detail dashboard
 │       │   └── Components/
 │       │       ├── MetricCard.swift       # Glassmorphic telemetry card
