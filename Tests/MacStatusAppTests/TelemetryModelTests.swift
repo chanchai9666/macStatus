@@ -18,4 +18,19 @@ struct TelemetryModelTests {
         #expect(Formatters.clampPercentage(105.0) == 100.0)
         #expect(Formatters.clampPercentage(42.5) == 42.5)
     }
+
+    @Test func testThermalPressureStateEnum() {
+        let stats = ThermalStats(celsius: 45.0, thermalState: .nominal)
+        #expect(stats.thermalState == .nominal)
+        #expect(stats.thermalState.rawValue == "Nominal")
+
+        let stringStats = ThermalStats(celsius: 60.0, thermalState: "Fair")
+        #expect(stringStats.thermalState == .fair)
+    }
+
+    @Test func testDiskIOStats() {
+        let disk = DiskStats(totalBytes: 1_000_000, freeBytes: 500_000, readBytesPerSec: 1024, writeBytesPerSec: 2048)
+        #expect(disk.readBytesPerSec == 1024)
+        #expect(disk.writeBytesPerSec == 2048)
+    }
 }

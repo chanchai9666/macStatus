@@ -2,8 +2,7 @@ import SwiftUI
 
 public enum RingMath {
     public static func trimFraction(percentage: Double) -> Double {
-        let clamped = max(0.0, min(100.0, percentage))
-        return clamped / 100.0
+        Formatters.clampPercentage(percentage) / 100.0
     }
 }
 

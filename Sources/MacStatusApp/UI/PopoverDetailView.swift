@@ -89,6 +89,16 @@ public struct PopoverDetailView: View {
                                 .foregroundColor(Color(white: 0.7))
                         }
 
+                        HStack {
+                            Text("Compressed: \(Formatters.formatBytes(snapshot.ram.compressedBytes))")
+                                .font(.system(size: 9.5))
+                                .foregroundColor(Color(white: 0.7))
+                            Spacer()
+                            Text("Pressure: \(snapshot.ram.pressureState)")
+                                .font(.system(size: 9.5, weight: .medium))
+                                .foregroundColor(snapshot.ram.pressureState == "Normal" ? Color(red: 48/255, green: 209/255, blue: 88/255) : Color(red: 255/255, green: 159/255, blue: 10/255))
+                        }
+
                         ProcessListView(
                             title: "Top Memory Consumers:",
                             processes: snapshot.topRAMProcesses,
@@ -105,7 +115,7 @@ public struct PopoverDetailView: View {
                     progress: snapshot.disk.usedPercentage / 100.0,
                     progressColor: Color(red: 255/255, green: 159/255, blue: 10/255)
                 ) {
-                    VStack(spacing: 2) {
+                    VStack(spacing: 3) {
                         HStack {
                             Text("Total: \(Formatters.formatBytes(snapshot.disk.totalBytes))")
                                 .font(.system(size: 9.5))
@@ -114,6 +124,16 @@ public struct PopoverDetailView: View {
                             Text("Used: \(String(format: "%.1f%%", snapshot.disk.usedPercentage))")
                                 .font(.system(size: 9.5, design: .monospaced))
                                 .foregroundColor(.white)
+                        }
+
+                        HStack {
+                            Text("Read: \(Formatters.formatSpeed(snapshot.disk.readBytesPerSec))")
+                                .font(.system(size: 9.5, design: .monospaced))
+                                .foregroundColor(Color(red: 100/255, green: 210/255, blue: 255/255))
+                            Spacer()
+                            Text("Write: \(Formatters.formatSpeed(snapshot.disk.writeBytesPerSec))")
+                                .font(.system(size: 9.5, design: .monospaced))
+                                .foregroundColor(Color(red: 255/255, green: 159/255, blue: 10/255))
                         }
                     }
                     .padding(.top, 1)
@@ -136,7 +156,7 @@ public struct PopoverDetailView: View {
                                 .foregroundColor(Color(red: 48/255, green: 209/255, blue: 88/255))
                         }
 
-                        Text("IP: \(snapshot.network.localIP)")
+                        Text("IF: \(snapshot.network.interfaceName) • IP: \(snapshot.network.localIP)")
                             .font(.system(size: 9))
                             .foregroundColor(Color(white: 0.55))
                             .lineLimit(1)
@@ -160,11 +180,23 @@ public struct PopoverDetailView: View {
 
                         Text(String(format: "%.1f°C", snapshot.thermal.celsius))
                             .font(.system(size: 15, weight: .bold, design: .monospaced))
-                            .foregroundColor(tempColor(snapshot.thermal.celsius))
+                            .foregroundColor(Color.temperatureColor(for: snapshot.thermal.celsius))
 
-                        Text("State: \(snapshot.thermal.thermalState)")
-                            .font(.system(size: 9))
-                            .foregroundColor(Color(white: 0.55))
+                        HStack {
+                            Text("State: \(snapshot.thermal.thermalState.rawValue)")
+                                .font(.system(size: 9))
+                                .foregroundColor(Color(white: 0.55))
+                            Spacer()
+                            if let rpm = snapshot.thermal.fanRPM {
+                                Text("\(rpm) RPM")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(Color(white: 0.55))
+                            } else {
+                                Text("Fanless")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(Color(white: 0.45))
+                            }
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(8)
@@ -186,6 +218,13 @@ public struct PopoverDetailView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(Color.white.opacity(0.15))
+
+                    Button(action: openSystemSettings) {
+                        Text("Configure...")
+                            .font(.system(size: 10.5))
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(Color.white.opacity(0.12))
 
                     Spacer()
 
@@ -214,14 +253,10 @@ public struct PopoverDetailView: View {
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
     }
 
-    private func tempColor(_ celsius: Double) -> Color {
-        if celsius >= 85.0 {
-            return Color(red: 255/255, green: 69/255, blue: 58/255)
-        } else if celsius >= 65.0 {
-            return Color(red: 255/255, green: 159/255, blue: 10/255)
-        } else {
-            return Color(red: 48/255, green: 209/255, blue: 88/255)
-        }
+    private func openSystemSettings() {
+        let path = "/System/Applications/System Settings.app"
+        let url = URL(fileURLWithPath: path)
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
     }
 }
 

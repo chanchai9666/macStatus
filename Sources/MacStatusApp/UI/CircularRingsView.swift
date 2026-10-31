@@ -60,21 +60,11 @@ public struct CircularRingsView: View {
             HStack(spacing: 2) {
                 Text(String(format: "%.0f°", snapshot.thermal.celsius))
                     .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-                    .foregroundColor(tempColor(snapshot.thermal.celsius))
+                    .foregroundColor(Color.temperatureColor(for: snapshot.thermal.celsius))
                     .frame(width: 22, alignment: .leading)
             }
         }
         .padding(.horizontal, 4)
         .frame(height: 22)
-    }
-
-    private func tempColor(_ celsius: Double) -> Color {
-        if celsius >= 85.0 {
-            return Color(red: 255/255, green: 69/255, blue: 58/255)
-        } else if celsius >= 65.0 {
-            return Color(red: 255/255, green: 159/255, blue: 10/255)
-        } else {
-            return Color(red: 255/255, green: 214/255, blue: 10/255)
-        }
     }
 }

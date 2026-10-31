@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 public enum Formatters {
     public static func formatBytes(_ bytes: Int64) -> String {
@@ -52,5 +53,17 @@ public enum Formatters {
 
     public static func clampPercentage(_ value: Double) -> Double {
         min(100.0, max(0.0, value))
+    }
+}
+
+extension Color {
+    public static func temperatureColor(for celsius: Double) -> Color {
+        if celsius >= 85.0 {
+            return Color(red: 255/255, green: 69/255, blue: 58/255)
+        } else if celsius >= 65.0 {
+            return Color(red: 255/255, green: 159/255, blue: 10/255)
+        } else {
+            return Color(red: 255/255, green: 214/255, blue: 10/255)
+        }
     }
 }

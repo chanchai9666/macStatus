@@ -18,11 +18,11 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
     private var lastCloseTime = Date.distantPast
     private var isScreenSleeping = false
 
-    // Fixed width to ensure rock-solid stability and zero jittering
-    private let barWidth: CGFloat = 225.0
+    // Fixed width to ensure rock-solid stability and zero jittering (Two-Row Stacked layout)
+    private let barWidth: CGFloat = 160.0
 
-    // Efficient interval: 2.5s idle (saves battery/CPU), 1.0s when popover is open
-    private let idleInterval: TimeInterval = 2.5
+    // Efficient interval: 2.0s idle (matching spec), 1.0s when popover is open
+    private let idleInterval: TimeInterval = 2.0
     private let activeInterval: TimeInterval = 1.0
 
     public init(telemetryService: SystemTelemetryService = SystemTelemetryService()) {

@@ -95,18 +95,36 @@ public struct NetworkStats: Sendable {
     }
 }
 
+public enum ThermalPressureState: String, Sendable, CaseIterable {
+    case nominal = "Nominal"
+    case fair = "Fair"
+    case serious = "Serious"
+    case critical = "Critical"
+    case unknown = "Unknown"
+}
+
 public struct ThermalStats: Sendable {
     public let celsius: Double
-    public let thermalState: String
+    public let thermalState: ThermalPressureState
     public let fanRPM: Int?
 
     public init(
         celsius: Double = 42.0,
-        thermalState: String = "Nominal",
+        thermalState: ThermalPressureState = .nominal,
         fanRPM: Int? = nil
     ) {
         self.celsius = celsius
         self.thermalState = thermalState
+        self.fanRPM = fanRPM
+    }
+
+    public init(
+        celsius: Double,
+        thermalState: String,
+        fanRPM: Int? = nil
+    ) {
+        self.celsius = celsius
+        self.thermalState = ThermalPressureState(rawValue: thermalState) ?? .unknown
         self.fanRPM = fanRPM
     }
 }

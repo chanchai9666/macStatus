@@ -2,12 +2,18 @@ import Foundation
 import IOKit
 
 public final class ThermalMonitor: @unchecked Sendable {
+    // IOHID System Client constants
+    private static let kHIDPageAppleVendor: UInt32 = 0xff00
+    private static let kHIDUsageAppleVendorTemperatureSensor: UInt32 = 0x5
+    private static let kIOHIDEventTypeTemperature: UInt32 = 15
+
     private typealias IOHIDEventSystemClientCreateFunc = @convention(c) (CFAllocator?) -> UnsafeMutableRawPointer?
     private typealias IOHIDEventSystemClientSetMatchingFunc = @convention(c) (UnsafeMutableRawPointer, CFDictionary) -> Void
     private typealias IOHIDEventSystemClientCopyServicesFunc = @convention(c) (UnsafeMutableRawPointer) -> CFArray?
     private typealias IOHIDServiceClientCopyEventFunc = @convention(c) (UnsafeMutableRawPointer, UInt32, UInt32, UInt64) -> CFTypeRef?
     private typealias IOHIDEventGetFloatValueFunc = @convention(c) (CFTypeRef, UInt32) -> Double
 
+    private var iokitHandle: UnsafeMutableRawPointer?
     private var client: UnsafeMutableRawPointer?
     private var copyServicesFunc: IOHIDEventSystemClientCopyServicesFunc?
     private var copyEventFunc: IOHIDServiceClientCopyEventFunc?
@@ -19,9 +25,18 @@ public final class ThermalMonitor: @unchecked Sendable {
         setupHIDClient()
     }
 
+    deinit {
+        if let client = self.client {
+            Unmanaged<CFTypeRef>.fromOpaque(client).release()
+        }
+        if let handle = self.iokitHandle {
+            dlclose(handle)
+        }
+    }
+
     private func setupHIDClient() {
         guard let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW) else { return }
-        defer { dlclose(handle) }
+        self.iokitHandle = handle
 
         if let createSym = dlsym(handle, "IOHIDEventSystemClientCreate"),
            let setMatchingSym = dlsym(handle, "IOHIDEventSystemClientSetMatching"),
@@ -37,8 +52,8 @@ public final class ThermalMonitor: @unchecked Sendable {
             if let client = createFunc(kCFAllocatorDefault) {
                 self.client = client
                 let matching: [String: Any] = [
-                    "PrimaryUsagePage": 0xff00,
-                    "PrimaryUsage": 0x5
+                    "PrimaryUsagePage": Self.kHIDPageAppleVendor,
+                    "PrimaryUsage": Self.kHIDUsageAppleVendorTemperatureSensor
                 ]
                 setMatchingFunc(client, matching as CFDictionary)
                 refreshServices()
@@ -62,26 +77,26 @@ public final class ThermalMonitor: @unchecked Sendable {
     }
 
     public func sample() -> ThermalStats {
-        let thermalState = ProcessInfo.processInfo.thermalState
-        let stateString: String
-        let baseTemp: Double
+        let osThermalState = ProcessInfo.processInfo.thermalState
+        let state: ThermalPressureState
+        let fallbackBaseTemp: Double
 
-        switch thermalState {
+        switch osThermalState {
         case .nominal:
-            stateString = "Nominal"
-            baseTemp = 42.0
+            state = .nominal
+            fallbackBaseTemp = 42.0
         case .fair:
-            stateString = "Fair"
-            baseTemp = 58.0
+            state = .fair
+            fallbackBaseTemp = 58.0
         case .serious:
-            stateString = "Serious"
-            baseTemp = 75.0
+            state = .serious
+            fallbackBaseTemp = 75.0
         case .critical:
-            stateString = "Critical"
-            baseTemp = 92.0
+            state = .critical
+            fallbackBaseTemp = 92.0
         @unknown default:
-            stateString = "Normal"
-            baseTemp = 42.0
+            state = .unknown
+            fallbackBaseTemp = 42.0
         }
 
         let nowUptime = ProcessInfo.processInfo.systemUptime
@@ -92,9 +107,8 @@ public final class ThermalMonitor: @unchecked Sendable {
         var detectedTemps: [Double] = []
         if let copyEvent = self.copyEventFunc, let getFloat = self.getFloatValueFunc {
             for service in cachedServices {
-                // 15 = kIOHIDEventTypeTemperature
-                if let event = copyEvent(service, 15, 0, 0) {
-                    let temp = getFloat(event, (15 << 16))
+                if let event = copyEvent(service, Self.kIOHIDEventTypeTemperature, 0, 0) {
+                    let temp = getFloat(event, (Self.kIOHIDEventTypeTemperature << 16))
                     if temp > 15.0 && temp < 120.0 {
                         detectedTemps.append(temp)
                     }
@@ -102,16 +116,11 @@ public final class ThermalMonitor: @unchecked Sendable {
             }
         }
 
-        let finalCelsius: Double
-        if !detectedTemps.isEmpty {
-            finalCelsius = detectedTemps.max() ?? baseTemp
-        } else {
-            finalCelsius = baseTemp
-        }
+        let finalCelsius: Double = detectedTemps.max() ?? fallbackBaseTemp
 
         return ThermalStats(
             celsius: finalCelsius,
-            thermalState: stateString,
+            thermalState: state,
             fanRPM: nil
         )
     }

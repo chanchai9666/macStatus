@@ -76,7 +76,20 @@ When clicked, it expands into an elegant Apple-style popover displaying detailed
 
 ## 🚀 Building & Running
 
-### 1. Build & Run via Swift Package Manager (CLI)
+### Using Make (Recommended)
+
+```bash
+make help        # Show all available build commands
+make build       # Build debug executable
+make release     # Build optimized release binary
+make test        # Run all test suites
+make run         # Run directly
+make app         # Package into build/MacStatus.app with icon and Info.plist
+make install     # Package and install to /Applications
+make clean       # Clean build artifacts
+```
+
+### Manual Build via Swift Package Manager
 
 ```bash
 # Clone the repository
