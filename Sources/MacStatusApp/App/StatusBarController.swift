@@ -18,8 +18,8 @@ public final class StatusBarController: NSObject, NSPopoverDelegate {
     private var lastCloseTime = Date.distantPast
     private var isScreenSleeping = false
 
-    // Fixed width to ensure rock-solid stability and zero jittering (Two-Row Stacked layout)
-    private let barWidth: CGFloat = 160.0
+    // Fixed width with generous room to ensure multi-digit numbers and labels never truncate
+    private let barWidth: CGFloat = 190.0
 
     // Efficient interval: 2.0s idle (matching spec), 1.0s when popover is open
     private let idleInterval: TimeInterval = 2.0
@@ -167,6 +167,6 @@ public struct DynamicMenuBarView: View {
     }
 
     public var body: some View {
-        CircularRingsView(snapshot: telemetryService.currentSnapshot)
+        TwoRowStackedView(snapshot: telemetryService.currentSnapshot)
     }
 }
