@@ -24,4 +24,8 @@ struct TwoRowStackedViewTests {
         #expect(TwoRowStackedView.tempColor(for: 70.0) == Color(red: 255/255, green: 159/255, blue: 10/255))
         #expect(TwoRowStackedView.tempColor(for: 90.0) == Color(red: 255/255, green: 69/255, blue: 58/255))
     }
+
+    @Test func testTwoRowStackedViewCPUColor() {
+        #expect(TwoRowStackedView.cpuColor == Color(red: 99/255, green: 230/255, blue: 226/255))
+    }
 }

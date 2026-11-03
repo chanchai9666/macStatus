@@ -13,7 +13,7 @@ public struct CircularRingsView: View {
             HStack(spacing: 3) {
                 RingGauge(
                     percentage: snapshot.cpu.totalUsage,
-                    tintColor: Color(red: 10/255, green: 132/255, blue: 255/255)
+                    tintColor: TwoRowStackedView.cpuColor
                 )
                 Text(String(format: "%2.0f%%", snapshot.cpu.totalUsage))
                     .font(.system(size: 10.5, weight: .semibold, design: .monospaced))

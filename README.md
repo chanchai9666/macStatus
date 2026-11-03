@@ -34,7 +34,7 @@ When clicked, it expands into an elegant Apple-style popover displaying detailed
 
 ### 1. Minimalist Two-Row Menu Bar Dashboard
 * **Pro Layout:** Clean 3-column, 2-row layout engineered specifically for the 22pt macOS Menu Bar.
-  * **Column 1:** **CPU** % (Blue) and **RAM** % (Green).
+  * **Column 1:** **CPU** % (Fresh Mint) and **RAM** % (Green).
   * **Column 2:** **SSD** % (Orange) and **TMP** SoC Temperature (Color-graded).
   * **Column 3:** Live Network Upload (▲) and Download (▼) transfer rates.
 * **Refined Typography & Spacing:** Monospaced numbers with subtle column dividers, supporting multi-digit numbers (up to 100% and multi-megabyte throughput) without label clipping or jitter.

@@ -3,6 +3,8 @@ import SwiftUI
 public struct TwoRowStackedView: View {
     public let snapshot: SystemSnapshot
 
+    public static let cpuColor = Color(red: 99/255, green: 230/255, blue: 226/255)
+
     public init(snapshot: SystemSnapshot) {
         self.snapshot = snapshot
     }
@@ -14,7 +16,7 @@ public struct TwoRowStackedView: View {
                 HStack(spacing: 2) {
                     Text("CPU")
                         .font(.system(size: 8.0, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 10/255, green: 132/255, blue: 255/255))
+                        .foregroundColor(Self.cpuColor)
                         .frame(width: 23, alignment: .leading)
                         .lineLimit(1)
                     Text(String(format: "%2.0f%%", snapshot.cpu.totalUsage))

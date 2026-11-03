@@ -49,7 +49,7 @@ public struct PopoverDetailView: View {
                     title: "⚡ CPU PROCESSOR",
                     badge: String(format: "%.1f%%", snapshot.cpu.totalUsage),
                     progress: snapshot.cpu.totalUsage / 100.0,
-                    progressColor: Color(red: 10/255, green: 132/255, blue: 255/255)
+                    progressColor: TwoRowStackedView.cpuColor
                 ) {
                     VStack(spacing: 3) {
                         HStack {
