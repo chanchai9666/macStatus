@@ -8,6 +8,10 @@
   <em>A native, ultra-lightweight, and clutter-free hardware status monitor for the macOS Menu Bar — meticulously crafted for Apple Silicon (M1/M2/M3/M4).</em>
 </p>
 
+<p align="center">
+  <strong>English</strong> | <a href="README_TH.md">ภาษาไทย</a>
+</p>
+
 [![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-black?logo=apple&style=flat-square)](https://apple.com)
 [![Architecture](https://img.shields.io/badge/Architecture-Apple%20Silicon%20(arm64)-orange?style=flat-square)](https://apple.com)
 [![Swift](https://img.shields.io/badge/Swift-6.0-F05138?logo=swift&logoColor=white&style=flat-square)](https://swift.org)
