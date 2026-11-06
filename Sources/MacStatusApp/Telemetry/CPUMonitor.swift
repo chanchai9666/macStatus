@@ -44,8 +44,13 @@ public final class CPUMonitor: @unchecked Sendable {
         var cpuInfo: processor_info_array_t?
         var numCpuInfo: mach_msg_type_number_t = 0
 
+        let hostPort = mach_host_self()
+        defer {
+            mach_port_deallocate(mach_task_self_, hostPort)
+        }
+
         let result = host_processor_info(
-            mach_host_self(),
+            hostPort,
             PROCESSOR_CPU_LOAD_INFO,
             &numCPUsU,
             &cpuInfo,

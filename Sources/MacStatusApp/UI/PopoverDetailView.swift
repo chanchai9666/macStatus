@@ -248,15 +248,21 @@ public struct PopoverDetailView: View {
     }
 
     private func openActivityMonitor() {
-        let path = "/System/Applications/Utilities/Activity Monitor.app"
-        let url = URL(fileURLWithPath: path)
-        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.ActivityMonitor") {
+            NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+        } else {
+            let fallbackURL = URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app")
+            NSWorkspace.shared.openApplication(at: fallbackURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+        }
     }
 
     private func openSystemSettings() {
-        let path = "/System/Applications/System Settings.app"
-        let url = URL(fileURLWithPath: path)
-        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.systempreferences") {
+            NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+        } else {
+            let fallbackURL = URL(fileURLWithPath: "/System/Applications/System Settings.app")
+            NSWorkspace.shared.openApplication(at: fallbackURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+        }
     }
 }
 

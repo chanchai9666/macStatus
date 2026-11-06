@@ -9,8 +9,8 @@ public final class ThermalMonitor: @unchecked Sendable {
 
     private typealias IOHIDEventSystemClientCreateFunc = @convention(c) (CFAllocator?) -> UnsafeMutableRawPointer?
     private typealias IOHIDEventSystemClientSetMatchingFunc = @convention(c) (UnsafeMutableRawPointer, CFDictionary) -> Void
-    private typealias IOHIDEventSystemClientCopyServicesFunc = @convention(c) (UnsafeMutableRawPointer) -> CFArray?
-    private typealias IOHIDServiceClientCopyEventFunc = @convention(c) (UnsafeMutableRawPointer, UInt32, UInt32, UInt64) -> CFTypeRef?
+    private typealias IOHIDEventSystemClientCopyServicesFunc = @convention(c) (UnsafeMutableRawPointer) -> Unmanaged<CFArray>?
+    private typealias IOHIDServiceClientCopyEventFunc = @convention(c) (UnsafeMutableRawPointer, UInt32, UInt32, UInt64) -> Unmanaged<CFTypeRef>?
     private typealias IOHIDEventGetFloatValueFunc = @convention(c) (CFTypeRef, UInt32) -> Double
 
     private var iokitHandle: UnsafeMutableRawPointer?
@@ -64,7 +64,8 @@ public final class ThermalMonitor: @unchecked Sendable {
     private func refreshServices() {
         guard let client = self.client, let copyServices = self.copyServicesFunc else { return }
         cachedServices.removeAll(keepingCapacity: true)
-        if let services = copyServices(client) {
+        if let unmanagedServices = copyServices(client) {
+            let services = unmanagedServices.takeRetainedValue()
             let count = CFArrayGetCount(services)
             for i in 0..<count {
                 if let rawService = CFArrayGetValueAtIndex(services, i) {
@@ -107,7 +108,8 @@ public final class ThermalMonitor: @unchecked Sendable {
         var detectedTemps: [Double] = []
         if let copyEvent = self.copyEventFunc, let getFloat = self.getFloatValueFunc {
             for service in cachedServices {
-                if let event = copyEvent(service, Self.kIOHIDEventTypeTemperature, 0, 0) {
+                if let unmanagedEvent = copyEvent(service, Self.kIOHIDEventTypeTemperature, 0, 0) {
+                    let event = unmanagedEvent.takeRetainedValue()
                     let temp = getFloat(event, (Self.kIOHIDEventTypeTemperature << 16))
                     if temp > 15.0 && temp < 120.0 {
                         detectedTemps.append(temp)

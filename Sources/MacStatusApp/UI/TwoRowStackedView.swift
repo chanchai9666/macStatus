@@ -69,7 +69,7 @@ public struct TwoRowStackedView: View {
                     Text(String(format: "%.0f°", snapshot.thermal.celsius))
                         .font(.system(size: 9.5, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
-                        .frame(width: 26, alignment: .trailing)
+                        .frame(width: 28, alignment: .trailing)
                         .lineLimit(1)
                 }
             }

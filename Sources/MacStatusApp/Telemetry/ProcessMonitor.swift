@@ -11,11 +11,13 @@ public final class ProcessMonitor: @unchecked Sendable {
     public init() {}
 
     public func sampleTopProcesses(limit: Int = 3) -> (topCPU: [TopProcessItem], topRAM: [TopProcessItem]) {
-        var pids = [pid_t](repeating: 0, count: 2048)
+        let estimatedBytes = proc_listallpids(nil, 0)
+        let pidCapacity = estimatedBytes > 0 ? (Int(estimatedBytes) / MemoryLayout<pid_t>.size) + 128 : 2048
+        var pids = [pid_t](repeating: 0, count: max(512, pidCapacity))
         let numBytes = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
         guard numBytes > 0 else { return ([], []) }
 
-        let count = Int(numBytes) / MemoryLayout<pid_t>.size
+        let count = min(pids.count, Int(numBytes) / MemoryLayout<pid_t>.size)
         let currentUptime = ProcessInfo.processInfo.systemUptime
 
         var cpuList: [TopProcessItem] = []
@@ -35,6 +37,7 @@ public final class ProcessMonitor: @unchecked Sendable {
 
             var nameBuffer = [CChar](repeating: 0, count: 256)
             proc_name(pid, &nameBuffer, UInt32(nameBuffer.count))
+            nameBuffer[nameBuffer.count - 1] = 0 // Ensure safe null-termination
             var procName = nameBuffer.withUnsafeBufferPointer { ptr in
                 String(cString: ptr.baseAddress!)
             }

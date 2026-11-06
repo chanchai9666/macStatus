@@ -13,13 +13,17 @@ public final class MemoryMonitor: @unchecked Sendable {
             ram = 16 * 1024 * 1024 * 1024 // Fallback 16GB
         }
         self.totalRamBytes = ram
-        self.pageSize = Int64(sysconf(_SC_PAGESIZE))
+        let sysPageSize = Int64(sysconf(_SC_PAGESIZE))
+        self.pageSize = sysPageSize > 0 ? sysPageSize : 16384
     }
 
     public func sample() -> RAMStats {
         var size = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size)
         var vmStats = vm_statistics64_data_t()
         let hostPort = mach_host_self()
+        defer {
+            mach_port_deallocate(mach_task_self_, hostPort)
+        }
 
         let kerr = withUnsafeMutablePointer(to: &vmStats) { ptr -> kern_return_t in
             ptr.withMemoryRebound(to: integer_t.self, capacity: Int(size)) { intPtr in

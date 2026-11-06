@@ -40,15 +40,20 @@ public final class NetworkMonitor: @unchecked Sendable {
                         }
                     } else if shouldLookupIP && family == UInt8(AF_INET) {
                         var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                        let saLen = socklen_t(addr.pointee.sa_len)
+                        let saLen = socklen_t(addr.pointee.sa_len > 0 ? addr.pointee.sa_len : UInt8(MemoryLayout<sockaddr_in>.size))
                         if getnameinfo(addr, saLen, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 {
                             let ipStr = host.withUnsafeBufferPointer { ptr in
                                 String(cString: ptr.baseAddress!)
                             }
+                            let ifName = String(cString: current.pointee.ifa_name)
                             if !ipStr.hasPrefix("127.") {
-                                cachedIP = ipStr
-                                cachedInterface = String(cString: current.pointee.ifa_name)
-                                lastIPLookupUptime = nowUptime
+                                let isPrimary = ifName.hasPrefix("en")
+                                let wasPrimary = cachedInterface.hasPrefix("en")
+                                if isPrimary || !wasPrimary || cachedIP == "127.0.0.1" {
+                                    cachedIP = ipStr
+                                    cachedInterface = ifName
+                                    lastIPLookupUptime = nowUptime
+                                }
                             }
                         }
                     }

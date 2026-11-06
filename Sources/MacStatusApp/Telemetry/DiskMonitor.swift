@@ -63,11 +63,15 @@ public final class DiskMonitor: @unchecked Sendable {
 
         if lastIOUptime > 0 {
             let timeDelta = nowUptime - lastIOUptime
-            if timeDelta > 0.1 {
+            if timeDelta > 0.1 && timeDelta <= 4.0 {
                 let readDelta = max(0, totalReadBytes - lastReadBytes)
                 let writeDelta = max(0, totalWriteBytes - lastWriteBytes)
                 currentReadSpeed = Double(readDelta) / timeDelta
                 currentWriteSpeed = Double(writeDelta) / timeDelta
+            } else if timeDelta > 4.0 {
+                // Guard against long sleep elapsed spikes
+                currentReadSpeed = 0.0
+                currentWriteSpeed = 0.0
             }
         }
 
